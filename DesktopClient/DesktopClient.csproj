@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>MacPromApp.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Docs\Images\Arrow.png" />
+    <None Remove="Docs\Images\CI_Logo.png" />
+    <None Remove="Docs\Images\Filter.png" />
+    <None Remove="Docs\Images\MacPromApp.ico" />
+    <None Remove="Docs\Images\MacPromLogo.png" />
+    <None Remove="Docs\Images\MainPicture.png" />
+    <None Remove="Docs\Images\MillIcon.png" />
+    <None Remove="Docs\Images\Silo.png" />
+    <None Remove="Docs\Images\User.png" />
+    <None Remove="Docs\Images\watch.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="MacPromApp.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.105.0" />
+    <PackageReference Include="MailKit" Version="4.13.0" />
+    <PackageReference Include="MaterialDesignThemes" Version="5.2.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.8" />
+    <PackageReference Include="MySqlConnector" Version="2.4.0" />
+    <PackageReference Include="NanoXLSX" Version="2.6.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Docs\Images\Arrow.png" />
+    <Resource Include="Docs\Images\CI_Logo.png" />
+    <Resource Include="Docs\Images\Filter.png" />
+    <Resource Include="Docs\Images\MacPromApp.ico" />
+    <Resource Include="Docs\Images\MacPromLogo.png" />
+    <Resource Include="Docs\Images\MainPicture.png" />
+    <Resource Include="Docs\Images\MillIcon.png" />
+    <Resource Include="Docs\Images\Silo.png" />
+    <Resource Include="Docs\Images\User.png" />
+    <Resource Include="Docs\Images\watch.png" />
+  </ItemGroup>
+
+</Project>

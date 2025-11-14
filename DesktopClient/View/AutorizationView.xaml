@@ -1,0 +1,179 @@
+﻿<UserControl x:Class="DesktopClient.View.AutorizationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:DesktopClient.View"
+             xmlns:vm="clr-namespace:DesktopClient.VM"
+             mc:Ignorable="d" 
+             xmlns:att="clr-namespace:DesktopClient.Helpers"
+             d:DesignHeight="450" d:DesignWidth="800"
+             d:DataContext="{d:DesignInstance Type=vm:AutorizationDialogVM, IsDesignTimeCreatable=False}">
+    <UserControl.Resources>
+        <Style x:Key="RegButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatButton}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                         Background="White"               
+                         BorderBrush="Gray"
+                         BorderThickness="1"
+                         CornerRadius="12"
+                         SnapsToDevicePixels="True">
+                            <!-- This is where your button’s Content actually appears: -->
+                            <ContentPresenter
+                             Margin="{TemplateBinding Padding}"
+                             HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                             VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                             RecognizesAccessKey="True"/>
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="HelpButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatButton}">
+            <Setter Property="Control.FontFamily" Value="Segoe UI"/>
+            <Setter Property="Control.Foreground" Value="Black"/>
+            <Setter Property="Control.FontSize" Value="10"/>
+            <Setter Property="Control.Background" Value="White"/>
+        </Style>
+
+        <Style x:Key="PlaceholderTextBoxStyle" TargetType="{x:Type TextBox}" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TextBox}">
+                        <Border x:Name="border"
+                     Padding="{TemplateBinding Padding}"
+                     Background="{TemplateBinding Background}"
+                     BorderBrush="{TemplateBinding BorderBrush}"
+                     BorderThickness="{TemplateBinding BorderThickness}"
+                     CornerRadius="12"
+                     SnapsToDevicePixels="True">
+                            <Grid>
+                                <ScrollViewer x:Name="PART_ContentHost" />
+                                <TextBlock x:Name="textBlock"
+                                Margin="2,0,0,0"
+                                Foreground="{TemplateBinding BorderBrush}"
+                                IsHitTestVisible="False"
+                                Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                                Visibility="Collapsed" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Text" Value="">
+                                <Setter TargetName="textBlock" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.56" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#FF7EB4EA" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#FF569DE5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PlaceholderPasswordBoxStyle"
+    TargetType="PasswordBox"
+    BasedOn="{StaticResource {x:Type PasswordBox}}">
+
+            <!-- Включаем логику отслеживания -->
+            <Setter Property="att:PasswordBoxAssist.Attach" Value="True"/>
+
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="PasswordBox">
+                        <Border x:Name="border"
+                     Padding="{TemplateBinding Padding}"
+                     BorderBrush="{TemplateBinding BorderBrush}"
+                     BorderThickness="{TemplateBinding BorderThickness}"
+                     Background="{TemplateBinding Background}"
+                     CornerRadius="12">
+
+                            <Grid>
+                                <!-- внутрь обязательно PART_ContentHost -->
+                                <ScrollViewer x:Name="PART_ContentHost"/>
+
+                                <!-- watermark (плейсхолдер) -->
+                                <TextBlock x:Name="watermark"
+                                Margin="2,0,0,0"
+                                Foreground="{TemplateBinding BorderBrush}"
+                                IsHitTestVisible="False"
+                                Text="{TemplateBinding Tag}"
+                                Visibility="Collapsed"/>
+                            </Grid>
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+
+                            <!-- ⭐ главное: показываем watermark, когда пароля НЕТ -->
+                            <Trigger Property="att:PasswordBoxAssist.HasText" Value="False">
+                                <Setter TargetName="watermark" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+
+                            <!-- чуть-чуть визуального отклика -->
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#FF569DE5"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#FF7EB4EA"/>
+                            </Trigger>
+
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+
+
+    <DockPanel >
+        <Border Height="400" Width="350" HorizontalAlignment="Center" VerticalAlignment="Center"          
+         CornerRadius="12" Padding="8" Background="White" Cursor="">
+            <StackPanel Orientation="Vertical" DockPanel.Dock="Top" Height="400" Width="350" 
+            HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Image Source="pack://application:,,,/DesktopClient;component/Docs/Images/MacPromLogo.png" Height="80" Margin="0 20 0 20" Width="205" Visibility="Visible"/>
+                <TextBlock Text="Логин" Width="262" Margin="0 0 0 10"/>
+                <TextBox Style="{StaticResource PlaceholderTextBoxStyle}" Tag="Введите логин" Padding="8,4,0,4"
+                      BorderBrush="Gray" BorderThickness="0.5" Width="250" Margin="0 0 0 20" HorizontalAlignment="Center"
+                         Text="{Binding Login, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Text="Пароль" Margin="0 0 0 10" Width="262"/>
+
+                <PasswordBox Style="{StaticResource PlaceholderPasswordBoxStyle}" Tag="Введите пароль"
+                           Padding="8,4,0,4"
+                           BorderBrush="Gray" BorderThickness="0.5"
+                           Width="250" Margin="0 0 0 15" HorizontalAlignment="Center"
+                           att:PasswordBoxAssist.BoundPassword = "{Binding Password, Mode = TwoWay, UpdateSourceTrigger = PropertyChanged}" />
+
+                <Button x:Name="LogButton" Height="25" Width="250" Content="Войти" HorizontalAlignment="Center" Style="{StaticResource BaseButton}" 
+                     Command="{Binding LoginCommand}" Margin="0 10 0 0" Foreground="White" Padding="0" FontSize="12" FontWeight="Normal" />
+
+                <Button Content="Регистрация"  Style="{StaticResource RegButton}"
+                     Height="25" Width="250" Margin="0 10 0 0" HorizontalAlignment="Center" Padding="0" FontSize="12" FontWeight="Normal"
+                     Foreground="Black" Command="{Binding NavigateToRegisterCommand}"/>
+
+                <Button Content="Забыли пароль?" Style="{StaticResource HelpButton}" Height="25" Width="166" Margin="8 20 0 0"
+                     HorizontalAlignment="Center" FontSize="10" FontWeight="Normal" Command="{Binding ForgotPassCommand}"/>
+            </StackPanel>
+        </Border>
+    </DockPanel>
+</UserControl>

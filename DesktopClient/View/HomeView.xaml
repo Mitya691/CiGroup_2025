@@ -1,0 +1,352 @@
+﻿<UserControl x:Class="DesktopClient.View.HomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:DesktopClient.View"
+             xmlns:vm="clr-namespace:DesktopClient.VM"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800"
+             d:DataContext="{d:DesignInstance Type=vm:HomeCardVM, IsDesignTimeCreatable=True}">
+    <UserControl.Resources>
+        <Style x:Key="BaseLabel" TargetType="TextBlock">
+            <Setter Property="Margin" Value="10 10 10 10"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="ValueLabel" TargetType="TextBlock">
+            <Setter Property="Margin" Value="10 10 10 10"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Карточка c данными по завершенному циклу перегона зерна -->
+        <DataTemplate DataType="{x:Type vm:HomeCardVM}">
+            <Border Background="#FFF7F7F7"
+        CornerRadius="14"
+        BorderBrush="#FFBCBFC3"
+        BorderThickness="1"
+        Width="350"
+        Height="280"
+        Padding="8">
+                <Grid>
+                    <!-- 4 строки: шапка, иконки, веса, кнопка -->
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <!-- даём «весу» занять остаток -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- кнопка -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Шапка дата и время -->
+                    <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="4">
+                        <TextBlock Text="{Binding StartTime, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}, TargetNullValue=—}" Style="{StaticResource ValueLabel}"/>
+                        <TextBlock Text="—" Style="{StaticResource BaseLabel}" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="{Binding StopTime, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}, TargetNullValue=—}" Style="{StaticResource ValueLabel}"/>
+                    </StackPanel>
+
+                    <!-- Информация о перегоне -->
+                    <Grid Grid.Row="1" Margin="4" Cursor="">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Orientation="Vertical" HorizontalAlignment="Center">
+                            <Image Source="pack://application:,,,/DesktopClient;component/Docs/Images/Silo.png" Height="35" Width="35"/>
+                            <TextBlock Text="{Binding SourceSilo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ValueLabel}" TextAlignment="Center"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Orientation="Vertical" HorizontalAlignment="Center">
+                            <Image Source="pack://application:,,,/DesktopClient;component/Docs/Images/Arrow.png" Height="35" Width="35"/>
+                            <TextBlock Text="{Binding Direction, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ValueLabel}" TextAlignment="Center"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Orientation="Vertical" HorizontalAlignment="Center">
+                            <Image Source="pack://application:,,,/DesktopClient;component/Docs/Images/MillIcon.png" Height="35" Width="35"/>
+                            <ComboBox ItemsSource="{Binding AvailableTargetSilos}" SelectedItem="{Binding TargetSilo}" FontSize="14" Width="65" Height="20" Margin="10 10 10 10"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Информация о весе -->
+                    <Grid Grid.Row="2" Margin="4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Orientation="Vertical">
+                            <TextBlock Text="Итог весы 1" Style="{StaticResource BaseLabel}"/>
+                            <TextBlock Text="{Binding Weight1, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ValueLabel}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Orientation="Vertical">
+                            <TextBlock Text="Итог весы 2" Style="{StaticResource BaseLabel}"/>
+                            <TextBlock Text="{Binding Weight2, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ValueLabel}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Orientation="Vertical">
+                            <TextBlock Text="Итого" Style="{StaticResource BaseLabel}"/>
+                            <TextBlock Text="{Binding TotalWeight, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ValueLabel}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Кнопка: справа снизу -->
+                    <Button Grid.Row="3" Content="Сохранить" Width="110" Height="32"
+                            HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                            Margin="0,8,8,8" Padding="12,4" Foreground="White" Style="{StaticResource BaseButton}"
+                            Command="{Binding SaveCardCommand}"
+                            />
+                    <TextBlock Grid.Row="3" Text="{Binding Status}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="15,5,0,5"/>
+                    
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <CollectionViewSource x:Key="CardsView" Source="{Binding Cards}" />
+
+        <Style x:Key="HelpButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatButton}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="#EEEEEE"
+                     BorderThickness="1" CornerRadius="12" SnapsToDevicePixels="True">
+                            <!-- This is where your button’s Content actually appears: -->
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                   HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                   VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                   RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PlaceholderTextBoxStyle" TargetType="{x:Type TextBox}" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TextBox}">
+                        <Border x:Name="border" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="12"
+                                SnapsToDevicePixels="True">
+                            <Grid>
+                                <ScrollViewer x:Name="PART_ContentHost" />
+                                <TextBlock x:Name="textBlock"
+           Margin="2,0,0,0"
+           Foreground="{TemplateBinding BorderBrush}"
+           IsHitTestVisible="False"
+           Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+           Visibility="Collapsed" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Text" Value="">
+                                <Setter TargetName="textBlock" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.56" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#FF7EB4EA" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#FF569DE5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Стиль для текстовых полей -->
+        <Style x:Key="FormTextBox" TargetType="TextBox" BasedOn="{StaticResource PlaceholderTextBoxStyle}">
+            <Setter Property="Margin" Value="0 0 0 15"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
+            <Setter Property="BorderThickness" Value="0.5"/>
+            <Setter Property="Padding" Value="8,4,0,4"/>
+        </Style>
+
+    </UserControl.Resources>
+
+    <Grid Background="White" Cursor="" >
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- Header -->
+            <RowDefinition Height="Auto"/>
+            <!-- Прокладка -->
+            <RowDefinition Height="Auto"/>
+            <!-- Фильтр -->
+            <RowDefinition Height="*"/>
+            <!-- Плитки -->
+        </Grid.RowDefinitions>
+
+        <!-- Header: навигация -->
+        <Grid Grid.Row="0" Background="White" Height="48" Cursor="" Margin="0 20 0 0 ">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <!-- Бейдж -->
+                <ColumnDefinition Width="*"/>
+                <!-- Левый наполнитель -->
+                <ColumnDefinition Width="Auto"/>
+                <!-- Кнопки (центр) -->
+                <ColumnDefinition Width="*"/>
+                <!-- Правый наполнитель -->
+                <ColumnDefinition Width="Auto"/>
+                <!-- Лого -->
+            </Grid.ColumnDefinitions>
+
+            <!-- ЛЕВО: Бейдж пользователя (иконка + ФИО) -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="20 0 0 0" >
+                <Image Source="/Docs/Images/User.png" Margin="10" />
+                <Border Padding="8,6" CornerRadius="8" Background="#10000000" VerticalAlignment="Center">
+                    <StackPanel>
+                        <TextBlock FontWeight="SemiBold"
+                   Text="{Binding CurrentUser.FullName, Source={StaticResource CurrentUser}, FallbackValue=Гость}"/>
+                        <TextBlock FontSize="12" Opacity="0.8"
+                   Text="{Binding CurrentUser.Post, Source={StaticResource CurrentUser}}"/>
+                    </StackPanel>
+                </Border>
+                <!-- Скрыть весь бейдж, если юзера нет -->
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CurrentUser, Source={StaticResource CurrentUser}}" Value="{x:Null}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+            </StackPanel>
+
+            <!-- ЦЕНТР: Кнопки навигации (строго по центру окна) -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal"
+              VerticalAlignment="Center" HorizontalAlignment="Center">
+                <RadioButton GroupName="Nav" Style="{StaticResource NavTab}"
+                             Content="Главный экран" IsChecked="True"
+                             Command="{Binding NavigateHomeCommand}" />
+                <RadioButton GroupName="Nav" Style="{StaticResource NavTab}"
+                             Content="Отчёты" Margin="40,0,0,0"
+                             Command="{Binding NavigateToReportsCommand}" Cursor="Hand" />
+                <Button Content="Выйти"  Padding="12,6" Margin="40,0,0,0"
+                        Command="{Binding LogoutCommand}" Style="{StaticResource HelpButton}" 
+                        Background="#EEEEEE" Foreground="Black"/> 
+            </StackPanel>
+
+            <!-- ПРАВО: Логотип компании в правом верхнем углу -->
+            <Image Grid.Column="3" Source="/Docs/Images/MacPromLogo.png"
+                   HorizontalAlignment="Right" VerticalAlignment="Top"
+                   Margin="0,-12,20,0" Height="79" Grid.ColumnSpan="3" Width="142"/>
+        </Grid>
+       
+        <Border Grid.Row="1" Height="1" VerticalAlignment="Bottom"
+                Background="#CECECE" SnapsToDevicePixels="True" Margin="15 10 15 0"/>
+
+        <Grid Grid.Row="2" Grid.RowSpan="2" Margin="16,16,16,16">
+            <Border CornerRadius="14" Background="#F8F8F8" BorderBrush="#F8F8F8"
+                    BorderThickness="1" SnapsToDevicePixels="True">
+                
+                <Grid ClipToBounds="True" Cursor="">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <!-- фильтр -->
+                        <RowDefinition Height="*"/>
+                        <!-- карточки -->
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="40,10,10,10" HorizontalAlignment="Stretch">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <!-- иконка -->
+                            <ColumnDefinition Width="Auto"/>
+                            <!-- "Фильтр" -->
+                            <ColumnDefinition Width="16"/>
+                            <!-- отступ -->
+                            <ColumnDefinition Width="Auto"/>
+                            <!-- "с:" -->
+                            <ColumnDefinition Width="150"/>
+                            <!-- DatePicker 1 -->
+                            <ColumnDefinition Width="16"/>
+                            <!-- отступ -->
+                            <ColumnDefinition Width="Auto"/>
+                            <!-- "по:" -->
+                            <ColumnDefinition Width="150"/>
+                            <!-- DatePicker 2 -->
+                            <ColumnDefinition Width="*"/>
+                            <!-- ГИБКИЙ ЗАЗОР до правого края -->
+                            <ColumnDefinition Width="Auto"/>
+                            <!-- КНОПКИ -->
+                        </Grid.ColumnDefinitions>
+
+                        <Image     Grid.Column="0" Source="/Docs/Images/Filter.png" Width="15" VerticalAlignment="Center" Margin="5,6,10,0"/>
+                        <TextBlock Grid.Column="1" Text="Фильтр" VerticalAlignment="Center" Margin="0,0,6,0" FontSize="15" FontWeight="SemiBold"/>
+
+                        <TextBlock Grid.Column="3" Text="с:"  VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <DatePicker Grid.Column="4" Width="150" SelectedDate="{Binding FilterStart, Mode=TwoWay}" SelectedDateFormat="Short"/>
+
+                        <TextBlock Grid.Column="6" Text="по:" VerticalAlignment="Center" Margin="12,0,6,0"/>
+                        <DatePicker Grid.Column="7" Width="150" SelectedDate="{Binding FilterEnd, Mode=TwoWay}"  SelectedDateFormat="Short"/>
+
+                        <!-- Кнопки всегда у правого края строки -->
+                        <StackPanel Grid.Column="9" Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="Применить" Padding="12,6" Margin="10,0,10,0"
+                                    Command="{Binding ApplyFilterCommand}" Style="{StaticResource BaseButton}" Foreground="White"/>
+                            <Button Content="Сбросить"  Padding="12,6" Margin="0,0,10,0"
+                                    Command="{Binding ResetFilterCommand}" Style="{StaticResource HelpButton}" Background="#EEEEEE" Foreground="Black"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Тонкая разделительная линия внутри подложки -->
+                    <Border Grid.Row="0" Height="1" VerticalAlignment="Bottom" 
+                            Background="#E6E8EB" Margin="15 10 15 0" SnapsToDevicePixels="True"/>
+
+                    <!-- Плиточная раскладка с прокруткой -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="12">
+                        <ItemsControl ItemsSource="{Binding Source={StaticResource CardsView}}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel IsItemsHost="True" Margin="100 20 40 0"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemContainerStyle>
+                                <Style TargetType="ContentPresenter">
+                                    <Setter Property="Margin" Value="6"/>
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <StackPanel Orientation="Horizontal" Grid.Row="2" Margin="40 10 10 10">
+                        <Image Source="/Docs/Images/watch.png" Width="15" VerticalAlignment="Center" Margin="5,5,10,0" />
+                        <TextBlock Text="Время схода продукта" Margin="5,7,10,0"/>
+                        <TextBox Text="{Binding ConvergenceTime}"  Style="{StaticResource FormTextBox}" Width="70" Height="23" Margin="5,4,10,0"/>
+                        <TextBlock Text="сек" Margin="-35,6,10,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            </Grid>
+        </Grid>
+</UserControl>
+    
