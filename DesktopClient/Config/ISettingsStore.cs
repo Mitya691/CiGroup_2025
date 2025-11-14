@@ -7,7 +7,7 @@ using DesktopClient.Model;
 
 namespace DesktopClient.Config
 {
-    internal interface ISettingsStore
+    public interface ISettingsStore
     {
         Settings Settings { get; }
         void LoadSettings();

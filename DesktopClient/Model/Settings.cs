@@ -39,6 +39,11 @@ namespace DesktopClient.Model
         /// </summary>
         [XmlIgnore]
         public string DbConnectionString => $"Server={DbServer};Port={DbPort};User={DbUser};Password={DbPassword};Database={Database};AllowLoadLocalInfile=true;";
+        
+        /// <summary>
+        /// Время схода продукта
+        /// </summary>
+        public int LagSeconds { get; set; }
 
         /// <summary>
         /// Создать настройки со значениями по-умолчанию.
@@ -50,6 +55,7 @@ namespace DesktopClient.Model
             Database = "elevatordb";
             DbUser = "elevator_user";
             DbPassword = "123456";
+            LagSeconds = 300;
         }
 
         /// <summary>

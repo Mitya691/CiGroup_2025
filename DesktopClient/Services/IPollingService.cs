@@ -9,9 +9,9 @@ namespace DesktopClient.Services
 {
     public interface IPollingService
     {
+        int LagSeconds { get; set; }
         event Action<IReadOnlyList<Card>>? CardsCreated;
         Task StartAsync(CancellationToken ct = default);
         void Stop();
-        void UpdateLagSeconds(int lagSeconds);
     }
 }

@@ -38,11 +38,16 @@ namespace DesktopClient
 
             serviceCollection.AddSingleton<IMailSettingsStore, MailSettingsStore>();
 
-            serviceCollection.AddSingleton<IPollingService>(sp => new PollingService(
-                                                            sp.GetRequiredService<ISQLRepository>(),
-                                                            period: TimeSpan.FromSeconds(10), // фиксированный период опроса
-                                                            lagSeconds: 300,
-                                                            sp.GetRequiredService<ILogger<PollingService>>()));
+            serviceCollection.AddSingleton<IPollingService>(sp =>
+            {
+                var st = sp.GetRequiredService<ISettingsStore>();
+                st.LoadSettings();
+
+                var ps = new PollingService(sp.GetRequiredService<ISQLRepository>(),
+                    period: TimeSpan.FromSeconds(10), sp.GetRequiredService<ILogger<PollingService>>());
+                ps.LagSeconds = Math.Max(0, st.Settings.LagSeconds);
+                return ps;
+            });
 
             serviceCollection.AddSingleton<ISettingsStore, SettingsStore>();
 

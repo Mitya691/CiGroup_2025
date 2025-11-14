@@ -1,4 +1,5 @@
-﻿using DesktopClient.Helpers;
+﻿using DesktopClient.Config;
+using DesktopClient.Helpers;
 using DesktopClient.Model;
 using DesktopClient.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +19,7 @@ namespace DesktopClient.VM
 
         private readonly ISQLRepository _repository;
         private IPollingService _polling;
+        private ISettingsStore _settings;
 
         private DateTime? _filterStart;
         public DateTime? FilterStart
@@ -49,7 +51,9 @@ namespace DesktopClient.VM
             {
                 if(Set(ref _convergenceTime, value))
                 {
-                    _polling.UpdateLagSeconds(Math.Max(0, value));
+                    _polling.LagSeconds = value;          // для текущей сессии
+                    _settings.Settings.LagSeconds = value; // для перезапуска
+                    _settings.SaveSettings();
                 }
             }
         }
@@ -69,18 +73,20 @@ namespace DesktopClient.VM
 
         public ObservableCollection<HomeCardVM> Cards { get; } = new();
 
-        public HomeDialogVM(MainWindowVM shell, ISQLRepository repository, IPollingService polling)
+        public HomeDialogVM(MainWindowVM shell, ISQLRepository repository, IPollingService polling, ISettingsStore settings)
         {
             _shell = shell;
             _repository = repository;
             _polling = polling;
-
+            _settings = settings;
             _polling.CardsCreated += OnCardsCreated;
 
             ApplyFilterCommand = new AsyncRelayCommand(GetCardsForFilter, CanGetCardsForFilter);
             ResetFilterCommand = new AsyncRelayCommand(ResetFilter);
             NavigateToReportsCommand = new RelayCommand(() => _shell.NavigateToAsync(App.Services.GetRequiredService<ReportDialogVM>()));
             LogoutCommand = new AsyncRelayCommand(DoLogoutAsync);
+
+            _convergenceTime = _polling.LagSeconds;
         }
 
         public async ValueTask DisposeAsync()

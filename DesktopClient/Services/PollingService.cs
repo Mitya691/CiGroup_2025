@@ -17,21 +17,23 @@ namespace DesktopClient.Services
         private CancellationTokenSource? _cts;
         private Task? _loop;
 
-        // актуальное значение лага; читаем/пишем атомарно
-        private int _lagSeconds;
+        private volatile int _lagSeconds = 300; // дефолт на всякий случай
+        public int LagSeconds
+        {
+            get => Volatile.Read(ref _lagSeconds);
+            set => Interlocked.Exchange(ref _lagSeconds, Math.Max(0, value));
+        }
 
         public event Action<IReadOnlyList<Card>>? CardsCreated;
 
-        public PollingService(ISQLRepository repo, TimeSpan period, int lagSeconds, ILogger<PollingService> logger)
+        public PollingService(ISQLRepository repo, TimeSpan period, ILogger<PollingService> logger)
         {
             _repo = repo;
             _period = period;
-            _lagSeconds = Math.Max(0, lagSeconds);
+
             _logger = logger;
         }
 
-        public void UpdateLagSeconds(int lagSeconds)
-            => Interlocked.Exchange(ref _lagSeconds, Math.Max(0, lagSeconds));
 
         public Task StartAsync(CancellationToken ct = default)
         {
@@ -63,7 +65,7 @@ namespace DesktopClient.Services
                 {
                     try
                     {
-                        int lagSec = Volatile.Read(ref _lagSeconds);
+                        int lagSec = LagSeconds;
 
                         // есть ли созревшие закрытия после lastEnd?
                         bool hasNew = await _repo
