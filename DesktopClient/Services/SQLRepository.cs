@@ -486,6 +486,7 @@ LEFT JOIN trends t ON t.TagID = cl.TrendID;
             const string sql = @"
         SELECT Family, Name, Patronymic
         FROM users
+        WHERE Post = ""Оператор""
         ORDER BY Family, Name, Patronymic;";
 
             var result = new List<string>();
