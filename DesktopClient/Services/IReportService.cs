@@ -9,7 +9,7 @@ namespace DesktopClient.Services
     public interface IReportService
     {
         Task<string> NewReport(DateTime? Start, DateTime? Stop, string shiftOperator);
-        Task<string> NewDailyReport(DateTime? Start, DateTime? Stop);
-        Task SendReportAsync(string reportPath, CancellationToken ct = default);
+        Task<string> NewDailyReport(DateTime? Start, DateTime? Stop, string firstOperator, string secondOperator);
+        Task SendReportAsync(string reportPath, DateTime? date, CancellationToken ct = default);
     }
 }

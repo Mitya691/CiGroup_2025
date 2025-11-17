@@ -13,6 +13,11 @@ using DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace DesktopClient.Services
 {
+    class SiloInfo
+    {
+        public decimal? WeightM1 { get; set; }
+        public decimal? WeightM2 { get; set; }
+    }
     /// <summary>
     /// Реализация сервиса создания отчета в форматет xlsx 
     /// SDK NanoXLSX
@@ -35,7 +40,7 @@ namespace DesktopClient.Services
         }
 
         public async Task<string> NewReport(DateTime? Start, DateTime? Stop, string shiftOperator)
-        {  
+        {
             List<Card> cards = await _repository.GetCardsForInterval(Start, Stop);
 
             if (cards.Count == 0)
@@ -262,7 +267,7 @@ namespace DesktopClient.Services
                 c.Width += 1.5;
 
             // Колонку A задаём руками
-            ws.Column("A").Width = 9; 
+            ws.Column("A").Width = 9;
             ws.Column("A").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
             // Высота строк – по содержимому таблицы
@@ -286,191 +291,148 @@ namespace DesktopClient.Services
         }
 
 
-        public async Task<string> NewDailyReport(DateTime? Start, DateTime? Stop)
+        public async Task<string> NewDailyReport(DateTime? Start, DateTime? Stop, string firstOperator, string secondOperator)
         {
-            //List<Card> cards = await _repository.GetCardsForInterval(DateTime.Parse("2025-08-20 00:00:00"), DateTime.Parse("2025-08-29 00:00:00"));
             List<Card> cards = await _repository.GetCardsForInterval(Start, Stop);
-            using var workbook = new XLWorkbook();
-            var worksheet = workbook.AddWorksheet("Отчёт");
 
-            worksheet.PageSetup.PageOrientation = XLPageOrientation.Landscape;
-            worksheet.PageSetup.PaperSize = XLPaperSize.A4Paper;
-
-            var cols = worksheet.Columns("A:I");
-            cols.AdjustToContents();
-            worksheet.Rows().AdjustToContents();
-
-            foreach (var c in cols)
-                c.Width += 5.0;
-
-            var r1 = worksheet.Range("A1:B1").Merge(); //Организация
-            var r2 = worksheet.Range("A2:B2").Merge(); //Подразделение
-
-            var r3 = worksheet.Range("D1:E1").Merge(); //ООО МакПром
-            var r4 = worksheet.Range("D2:E2").Merge(); //МиПЭ
-
-            var r5 = worksheet.Range("B3:I3").Merge(); //Название листа
-
-            var r6 = worksheet.Range("F4:G4").Merge(); //ФИО оператора
-
-            var r7 = worksheet.Range("A8:A9").Merge(); //Номер операции
-            var r8 = worksheet.Range("B8:D8").Merge(); //Перемещение зерна
-            var r9 = worksheet.Range("E8:F8").Merge(); //Время перемещения
-            var r10 = worksheet.Range("G8:H8").Merge(); //Показания весов
-            var r11 = worksheet.Range("I8:I9").Merge(); //Перемещено за операцию
-
-            //Шапка листа
-            worksheet.Cell("A1").Value = "Организация:";
-            worksheet.Cell("A2").Value = "Подразделение:";
-            worksheet.Cell("D1").Value = "ООО \"МакПром\"";
-            r3.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-            worksheet.Cell("D2").Value = "МиПЭ";
-            r4.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
-
-            worksheet.Cell("B3").Value = "Отчет перемещения зерна с элеваторных сооружений на мельницы";
-            r5.Style.Font.Bold = true;
-            r5.Style.Font.SetFontSize(15);
-
-            worksheet.Cell("A4").Value = "Дата:";
-            worksheet.Cell("A5").Value = "Время начала смены:";
-            worksheet.Cell("A6").Value = "Время окончания смены:";
-            worksheet.Cell("E4").Value = "Смена:";
-
-            var date = worksheet.Cell("B4");
-            var shiftStart = worksheet.Cell("E5");
-            var shiftEnd = worksheet.Cell("E6");
-            var person = worksheet.Cell("F4");
-
-
-            date.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
-            shiftStart.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
-            shiftEnd.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
-            person.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
-
-            //Шапка таблицы
-            worksheet.Cell("A8").Value = "№ операции";
-            worksheet.Cell("A8").Style.Alignment.SetWrapText(true);
-            worksheet.Cell("B8").Value = "Перемещение зерна";
-            worksheet.Cell("B8").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-            worksheet.Cell("E8").Value = "Время перемещения";
-            worksheet.Cell("E8").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-            worksheet.Cell("G8").Value = "Показания весов";
-            worksheet.Cell("G8").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-            worksheet.Cell("I8").Value = "Перемещено за операцию";
-            worksheet.Cell("A8").Style.Alignment.SetWrapText(true);
-
-            worksheet.Cell("B9").Value = "Из силоса элеватора, №";
-            worksheet.Cell("B9").Style.Alignment.SetWrapText(true);
-            worksheet.Cell("C9").Value = "В мельницу";
-            worksheet.Cell("C9").Style.Alignment.SetWrapText(true);
-            worksheet.Cell("D9").Value = "Силос мельницы";
-            worksheet.Cell("B9").Style.Alignment.SetWrapText(true);
-            worksheet.Cell("E9").Value = "Начало";
-            worksheet.Cell("F9").Value = "Окончание";
-            worksheet.Cell("G9").Value = "Весы 1";
-            worksheet.Cell("H9").Value = "Весы 2";
-
-            int rowCounter = 10;
-            int operationNumber = 1;
-
-            decimal? WeightM1 = 0;
-            decimal? WeightM2 = 0;
-            decimal? totalWeight = 0;
-
-            date.Value = DateTime.Now.ToString("dd.MM.yyyy");
-            shiftStart.Value = Start;
-            shiftEnd.Value = Stop;
-            ;
-
-            foreach (Card card in cards)
+            if (cards.Count == 0)
             {
-                worksheet.Cell(rowCounter, 1).Value = operationNumber;
-                worksheet.Cell(rowCounter, 2).Value = card.SourceSilo;
-                worksheet.Cell(rowCounter, 3).Value = card.Direction;
-                worksheet.Cell(rowCounter, 4).Value = card.TargetSilo;
-                worksheet.Cell(rowCounter, 5).Value = card.StartTime;
-                worksheet.Cell(rowCounter, 6).Value = card.EndTime;
-                worksheet.Cell(rowCounter, 7).Value = card.Weight1;
-                worksheet.Cell(rowCounter, 8).Value = card.Weight2;
-                worksheet.Cell(rowCounter, 9).Value = card.TotalWeight;
-
-                if (card.Direction == "М1")
-                {
-                    WeightM1 += card.TotalWeight;
-                }
-                else if (card.Direction == "М2")
-                {
-                    WeightM2 += card.TotalWeight;
-                }
-
-                totalWeight += card.TotalWeight;
-
-                rowCounter++;
-                operationNumber++;
+                _logger?.LogWarning("Нет карточек за период {Start} - {Stop}", Start, Stop);
+                return null;
             }
 
-            var range = worksheet.Range(1, 8, rowCounter, 9);
-            //range.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-            //range.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            using var wb = new XLWorkbook();
+            var ws = wb.AddWorksheet("Отчёт");
 
-            //Итоговые значения в конце таблицы
-            worksheet.Range(rowCounter, 2, rowCounter, 6);
-            worksheet.Cell(rowCounter, 2).Value = "Итого суммарно на конец смены:  ";
+            ws.PageSetup.PageOrientation = XLPageOrientation.Portrait;
+            ws.PageSetup.PaperSize = XLPaperSize.A4Paper;
 
-            worksheet.Range(rowCounter, 7, rowCounter, 8);
-            worksheet.Cell(rowCounter, 7).Value = totalWeight;
-            worksheet.Cell(rowCounter, 7).Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+            // ширины под макет
+            ws.Column("A").Width = 9.0;  
+            ws.Column("B").Width = 13.0;  
+            ws.Column("C").Width = 13.0; 
+            ws.Column("D").Width = 9.0;  
+            ws.Column("E").Width = 12.0;  
+            ws.Column("F").Width = 13.0;  
+            ws.Column("G").Width = 9.0;
+            ws.Column("H").Width = 9.0;
 
-            worksheet.Cell(rowCounter, 9).Value = "тонн";
+            // --------- ШАПКА ---------
+            ws.Range("A1:B1").Merge().Value = "Организация:";
+            ws.Range("C1:D1").Merge().Value = "ООО \"МакПром\"";
 
-            rowCounter++;
+            ws.Range("A2:B2").Merge().Value = "Подразделение:";
+            ws.Range("C2:D2").Merge().Value = "МиПЭ";
 
-            worksheet.Range(rowCounter, 2, rowCounter, 6);
-            worksheet.Cell(rowCounter, 2).Value = "В том числе на мельницу 1:  ";
+            var title = ws.Range("A3:G3").Merge();
+            title.Value = "Отчет по хранению и перемещению зерна на элеваторных сооружениях";
+            title.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            title.Style.Font.Bold = true;
 
-            worksheet.Range(rowCounter, 7, rowCounter, 8);
-            worksheet.Cell(rowCounter, 7).Value = WeightM1;
-            worksheet.Cell(rowCounter, 7).Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+            var generateDate = ws.Range("A4:B4").Merge(); 
+            generateDate.Value = "Дата составления:";
+            generateDate.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            ws.Cell("C4").Value = DateTime.Now.Date;
+            ws.Cell("C4").Style.DateFormat.Format = "dd.MM.yyyy";
+            ws.Cell("C4").Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
 
-            worksheet.Cell(rowCounter, 9).Value = "тонн";
+            ws.Range("D4").Merge().Value = "Смены:";
+            var fio1 = ws.Range("E4:F4").Merge();
+            fio1.Value = firstOperator;
+            var fio2 = ws.Range("E5:F5").Merge(); 
+            fio2.Value = secondOperator;
+            fio1.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            fio2.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
-            rowCounter++;
+            ws.Range("A6:D6").Merge().Value = "Время, дата начала формирования отчета:";
+            ws.Cell("E6").Value = Start;
+            ws.Cell("E6").Style.DateFormat.Format = "HH:mm";
+            ws.Cell("F6").Value = Start;
+            ws.Cell("F6").Style.DateFormat.Format = "dd.MM.yyyy";
 
-            worksheet.Range(rowCounter, 2, rowCounter, 6);
-            worksheet.Cell(rowCounter, 2).Value = "В том числе на мельницу 2:  ";
+            ws.Range("A7:D7").Merge().Value = "Время, дата окончания формирования отчета:";
+            ws.Cell("E7").Value = Stop;
+            ws.Cell("E7").Style.DateFormat.Format = "HH:mm";
+            ws.Cell("F7").Value = Stop;
+            ws.Cell("F7").Style.DateFormat.Format = "dd.MM.yyyy";
 
-            worksheet.Range(rowCounter, 7, rowCounter, 8);
-            worksheet.Cell(rowCounter, 7).Value = WeightM2;
-            worksheet.Cell(rowCounter, 7).Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+            var range = ws.Range("E4:F7");
+            range.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+            range.Style.Border.InsideBorder = XLBorderStyleValues.Medium;
 
-            worksheet.Cell(rowCounter, 9).Value = "тонн";
+            // --------- ШАПКА ТАБЛИЦЫ---------
+            var siloField = ws.Range("A9:A10").Merge();
+            siloField.Value = "Силос, №";
 
-            rowCounter += 2;
+            var flow = ws.Range("B9:D9").Merge();
+            flow.Value = "Расход, кг";
+            flow.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
-            worksheet.Cell(rowCounter, 6).Value = "Оператор ПУЭ";
-            worksheet.Range(rowCounter, 8, rowCounter, 9);
-            worksheet.Cell(rowCounter, 8).Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            ws.Cell("B10").Value = "Мельница 1";
+            ws.Cell("C10").Value = "Мельница 2";
+            ws.Cell("D10").Value = "Итого";
 
+            // --------- АГРЕГАЦИЯ ---------
+            var dict = new Dictionary<string, SiloInfo>();
+            foreach (var card in cards)
+            {
+                string silo = card.SourceSilo;
+
+                if (!dict.TryGetValue(silo, out var data))
+                {
+                    data = new SiloInfo();
+                    dict.Add(silo, data);   // вставка происходит только один раз
+                }
+
+                var w = card.TotalWeight ?? 0m; // если null, берём 0
+
+                if (card.Direction == "M1")
+                {
+                    data.WeightM1 = (data.WeightM1 ?? 0m) + w;
+                }
+                else if (card.Direction == "M2")
+                {
+                    data.WeightM2 = (data.WeightM2 ?? 0m) + w;
+                }
+            }
+
+            // --------- ВСТАВКА В ТАБЛИЦУ ---------
+            int num = 11;
+            foreach (var d in dict)
+            {
+                ws.Cell(num, 1).Value = d.Key;
+                ws.Cell(num, 2).Value = d.Value.WeightM1;
+                ws.Cell(num, 3).Value = d.Value.WeightM2;
+                ws.Cell(num, 4).Value = d.Value.WeightM1 + d.Value.WeightM2;
+                num++;
+            }
+
+            ws.Range(11, 1, num, 4).Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            ws.Range(11, 1, num, 4).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            // ---------------- СОХРАНЕНИЕ ----------------
+            var baseFolder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                "DailyReports");
+
+            Directory.CreateDirectory(baseFolder);
 
             string filePath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-            $"Report_{DateTime.Now:yyyy_MM_dd_HHmm}.xlsx");
+                baseFolder,
+                $"DailyReport_{DateTime.Now:yyyy_MM_dd_HHmm}.xlsx");
 
-            workbook.SaveAs(filePath);
-
-            Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
+            wb.SaveAs(filePath);
 
             return filePath;
         }
 
-        public async Task SendReportAsync(string reportPath, CancellationToken ct = default)
+        public async Task SendReportAsync(string reportPath, DateTime? date, CancellationToken ct = default)
         {
             if (!File.Exists(reportPath))
                 throw new FileNotFoundException("Report not found", reportPath);
 
             var s = _mailSettings.Settings;
 
-            var subject = $"Отчёт за {DateTime.Today.AddDays(-1):dd.MM.yyyy}";
+            var subject = $"Отчёт за {date:dd.MM.yyyy}";
             var msg = new MimeMessage();
 
             msg.From.Add(new MailboxAddress(s.Sender?.Name ?? "", s.Sender?.Email ?? ""));
@@ -518,6 +480,6 @@ namespace DesktopClient.Services
             await client.DisconnectAsync(true, ct).ConfigureAwait(false);
         }
 
-        
+
     }
 }

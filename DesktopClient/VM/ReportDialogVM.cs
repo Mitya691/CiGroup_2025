@@ -231,7 +231,7 @@ namespace DesktopClient.VM
                     return;
                 }
 
-                await _reportService.SendReportAsync(path);
+                await _reportService.SendReportAsync(path, DateStart);
                 MessageBox.Show("Отчёт сформирован и отправлен.");
                 Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
             }
@@ -247,19 +247,24 @@ namespace DesktopClient.VM
             _beginTimeForDayReport = Convert.ToDateTime(DayStartTime).TimeOfDay;
             _endTimeForDayReport = Convert.ToDateTime(DayStopTime).TimeOfDay;
 
-            var path = await _reportService.NewDailyReport(DayDateStart + _beginTimeForDayReport, DayDateStop + _endTimeForDayReport);
-            await _reportService.SendReportAsync(path);
+            var path = await _reportService.NewDailyReport(DayDateStart + _beginTimeForDayReport, DayDateStop + _endTimeForDayReport, FirstOperator, SecondOperator);
+            if (path is null)
+            {
+                MessageBox.Show("Нет карточек за выбранный период");
+                return;
+            }
+            await _reportService.SendReportAsync(path, DayDateStart);
             MessageBox.Show("Отчёт сформирован и отправлен.");
             Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });   
         }
 
         private bool CanGenerate()
         {
-            return true;
+            return (ShiftOperator != null);
         }
         private bool CanGenerateDayReport()
         {
-            return true;
+            return (FirstOperator != null) && (SecondOperator != null) ;
         }
 
         private async Task DoLogoutAsync()
@@ -287,7 +292,7 @@ namespace DesktopClient.VM
             }
             catch (Exception ex)
             {
-                // тут можешь залогировать или показать сообщение
+                
             }
         }
     }
