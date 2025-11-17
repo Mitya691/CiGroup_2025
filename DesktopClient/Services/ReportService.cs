@@ -311,7 +311,7 @@ namespace DesktopClient.Services
             ws.Column("A").Width = 9.0;  
             ws.Column("B").Width = 13.0;  
             ws.Column("C").Width = 13.0; 
-            ws.Column("D").Width = 9.0;  
+            ws.Column("D").Width = 13.0;  
             ws.Column("E").Width = 12.0;  
             ws.Column("F").Width = 13.0;  
             ws.Column("G").Width = 9.0;
@@ -386,11 +386,11 @@ namespace DesktopClient.Services
 
                 var w = card.TotalWeight ?? 0m; // если null, берём 0
 
-                if (card.Direction == "M1")
+                if (card.Direction == "М1")
                 {
                     data.WeightM1 = (data.WeightM1 ?? 0m) + w;
                 }
-                else if (card.Direction == "M2")
+                else if (card.Direction == "М2")
                 {
                     data.WeightM2 = (data.WeightM2 ?? 0m) + w;
                 }
@@ -407,8 +407,39 @@ namespace DesktopClient.Services
                 num++;
             }
 
-            ws.Range(11, 1, num, 4).Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-            ws.Range(11, 1, num, 4).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            // ---------------- ФОРМА ПОСЛЕ ТАБЛИЦЫ ----------------
+
+            ws.Cell(num, 1).Value = "Итого:";
+            ws.Cell(num, 2).FormulaA1 = $"SUM(B11:B{num - 1})";
+            ws.Cell(num, 3).FormulaA1 = $"SUM(C11:C{num - 1})";
+            ws.Cell(num, 4).FormulaA1 = $"SUM(D11:D{num - 1})";
+            num++;
+
+            var table = ws.Range(9, 1, num-1, 4);
+            table.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            table.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+            ws.Range(num, 1, num, 2).Merge().Value = "Отчет подготовил";
+            num++;
+            ws.Cell(num, 2).Value = "Оператор ПУЭ";
+            var sig1 = ws.Range(num, 4, num, 5).Merge();
+            sig1.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            ws.Range(num, 6, num, 7).Merge().Value = firstOperator;
+            num++;
+            ws.Cell(num, 2).Value = "Оператор ПУЭ";
+            var sig2 = ws.Range(num, 4, num, 5).Merge();
+            sig2.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            ws.Range(num, 6, num, 7).Merge().Value = secondOperator;
+
+            num += 2;
+
+            ws.Range(num, 1, num, 2).Merge().Value = "Согласовано:";
+            var sig3 = ws.Range(num, 4, num, 5).Merge();
+            sig3.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+            ws.Range(num, 6, num, 7).Merge().Value = "Синица Е.Ю.";
+
+            num++;
+            ws.Range(num, 1, num, 3).Merge().Value = "Зам. директора по производству МиПЭ";
             // ---------------- СОХРАНЕНИЕ ----------------
             var baseFolder = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
@@ -425,14 +456,14 @@ namespace DesktopClient.Services
             return filePath;
         }
 
-        public async Task SendReportAsync(string reportPath, DateTime? date, CancellationToken ct = default)
+        public async Task SendReportAsync(string reportPath, DateTime? date, DateTime? date1, CancellationToken ct = default)
         {
             if (!File.Exists(reportPath))
                 throw new FileNotFoundException("Report not found", reportPath);
 
             var s = _mailSettings.Settings;
-
-            var subject = $"Отчёт за {date:dd.MM.yyyy}";
+            var generationDate = $"Дата создания отчета: {DateTime.Now}";
+            var subject = $"Отчёт за {date:dd.MM.yyyy HH:mm} - {date1:dd.MM.yyyy HH:mm}";
             var msg = new MimeMessage();
 
             msg.From.Add(new MailboxAddress(s.Sender?.Name ?? "", s.Sender?.Email ?? ""));
@@ -442,17 +473,22 @@ namespace DesktopClient.Services
 
             msg.Subject = subject;
 
+            var lines = new[]
+            {
+                s.Sender?.Name ?? "Организация",
+                generationDate,
+                subject,
+                "",
+                "Отчёт находится во вложении.",
+                "Пожалуйста, не отвечайте на это сообщение.",
+                "",
+                "Служба автоматической отправки сообщений ООО «МакПром»",
+                "Тел. для справок: +7-(961)-671-41-45"
+            };
+
             var body = new BodyBuilder
             {
-                TextBody =
-                        $@"{s.Sender?.Name ?? "Организация"}
-                        {subject}
-
-                        Отчёт находится во вложении.
-                        Пожалуйста, не отвечайте на это сообщение.
-
-                        Служба автоматической отправки сообщений ООО «МакПром»
-                        Тел. для справок: +7-(961)-671-41-45"
+                TextBody = string.Join(Environment.NewLine, lines)
             };
 
             // читаем файл в память — чтобы не держать файловый дескриптор

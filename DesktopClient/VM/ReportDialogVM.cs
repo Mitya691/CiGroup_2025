@@ -231,7 +231,7 @@ namespace DesktopClient.VM
                     return;
                 }
 
-                await _reportService.SendReportAsync(path, DateStart);
+                await _reportService.SendReportAsync(path, DateStart+_beginTime, DateStop+_endTime);
                 MessageBox.Show("Отчёт сформирован и отправлен.");
                 Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
             }
@@ -246,16 +246,23 @@ namespace DesktopClient.VM
         {
             _beginTimeForDayReport = Convert.ToDateTime(DayStartTime).TimeOfDay;
             _endTimeForDayReport = Convert.ToDateTime(DayStopTime).TimeOfDay;
-
-            var path = await _reportService.NewDailyReport(DayDateStart + _beginTimeForDayReport, DayDateStop + _endTimeForDayReport, FirstOperator, SecondOperator);
-            if (path is null)
+            try
             {
-                MessageBox.Show("Нет карточек за выбранный период");
-                return;
+                var path = await _reportService.NewDailyReport(DayDateStart + _beginTimeForDayReport, DayDateStop + _endTimeForDayReport, FirstOperator, SecondOperator);
+                if (path is null)
+                {
+                    MessageBox.Show("Нет карточек за выбранный период");
+                    return;
+                }
+                await _reportService.SendReportAsync(path, DayDateStart + _beginTimeForDayReport, DayDateStop + _endTimeForDayReport);
+                MessageBox.Show("Отчёт сформирован и отправлен.");
+                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
             }
-            await _reportService.SendReportAsync(path, DayDateStart);
-            MessageBox.Show("Отчёт сформирован и отправлен.");
-            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });   
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при формировании отчёта за период {Start} - {Stop}", DateStart + _beginTime, DateStop + _endTime);
+                MessageBox.Show("Ошибка при формировании отчёта. Подробности в лог-файле.");
+            }
         }
 
         private bool CanGenerate()
