@@ -10,6 +10,7 @@ using System.IO;
 using DesktopClient.Config;
 using Microsoft.Extensions.Logging;
 using DocumentFormat.OpenXml.Drawing.Charts;
+using System.Security.AccessControl;
 
 namespace DesktopClient.Services
 {
@@ -41,13 +42,17 @@ namespace DesktopClient.Services
 
         public async Task<string> NewReport(DateTime? Start, DateTime? Stop, string shiftOperator)
         {
-            List<Card> cards = await _repository.GetCardsForInterval(Start, Stop);
+            List<Card> rawData = await _repository.GetCardsForInterval(Start, Stop);
 
-            if (cards.Count == 0)
+            if (rawData.Count == 0)
             {
                 _logger.LogWarning("Нет карточек за период {Start} - {Stop}", Start, Stop);
                 return null; // просто сигнал наверх
             }
+
+            List<Card> cards = rawData
+                               .OrderBy(c => c.StartTime)
+                               .ToList();
 
             using var workbook = new XLWorkbook();
             var ws = workbook.AddWorksheet("Отчёт");
@@ -180,6 +185,7 @@ namespace DesktopClient.Services
                 ws.Cell(row, 7).Value = card.Weight1;
                 ws.Cell(row, 8).Value = card.Weight2;
                 ws.Cell(row, 9).Value = card.TotalWeight;
+                ws.Range(row, 7, row, 9).Style.NumberFormat.Format = "#,##0";
 
                 ws.Row(row).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
@@ -209,6 +215,7 @@ namespace DesktopClient.Services
             totalLabel.Value = "Итого суммарно на конец смены:";
             totalValue.Value = totalWeight ?? 0;
             totalValue.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+            totalValue.Style.NumberFormat.Format = "#,##0";
             ws.Cell(totalRow, 9).Value = "кг";
 
             // В том числе М1
@@ -219,6 +226,7 @@ namespace DesktopClient.Services
             m1Label.Value = "В том числе на мельницу 1:";
             m1Value.Value = weightM1 ?? 0;
             m1Value.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+            m1Value.Style.NumberFormat.Format = "#,##0";
             ws.Cell(totalRow, 9).Value = "кг";
 
             // В том числе М2
@@ -229,6 +237,7 @@ namespace DesktopClient.Services
             m2Label.Value = "В том числе на мельницу 2:";
             m2Value.Value = weightM2 ?? 0;
             m2Value.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
+            m2Value.Style.NumberFormat.Format = "#,##0";
             ws.Cell(totalRow, 9).Value = "кг";
 
             // Строка подписи
@@ -401,9 +410,10 @@ namespace DesktopClient.Services
             foreach (var d in dict)
             {
                 ws.Cell(num, 1).Value = d.Key;
-                ws.Cell(num, 2).Value = d.Value.WeightM1;
-                ws.Cell(num, 3).Value = d.Value.WeightM2;
-                ws.Cell(num, 4).Value = d.Value.WeightM1 + d.Value.WeightM2;
+                ws.Cell(num, 2).Value = d.Value.WeightM1 ?? 0m;
+                ws.Cell(num, 3).Value = d.Value.WeightM2 ?? 0m;
+                ws.Cell(num, 4).Value = (d.Value.WeightM1 ?? 0m) + (d.Value.WeightM2 ?? 0m);
+                ws.Range(num, 1, num, 4).Style.NumberFormat.Format = "#,##0";
                 num++;
             }
 
@@ -413,6 +423,7 @@ namespace DesktopClient.Services
             ws.Cell(num, 2).FormulaA1 = $"SUM(B11:B{num - 1})";
             ws.Cell(num, 3).FormulaA1 = $"SUM(C11:C{num - 1})";
             ws.Cell(num, 4).FormulaA1 = $"SUM(D11:D{num - 1})";
+            ws.Range(num, 1, num, 4).Style.NumberFormat.Format = "#,##0";
             num++;
 
             var table = ws.Range(9, 1, num-1, 4);
