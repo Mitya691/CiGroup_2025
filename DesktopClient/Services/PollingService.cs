@@ -86,15 +86,24 @@ namespace DesktopClient.Services
                             continue;
                         }
 
-                        // двигаем чекпоинт
+                        if (fresh.Count > 0)
+                        {
+                            foreach (var c in fresh)
+                            {
+                                var delay = DateTime.Now - c.EndTime;
+                                _logger.LogInformation(
+                                    "Card {CardId}: EndTs={EndTs:O}, Now={Now:O}, Delay={DelaySec} sec (~{DelayMin:F1} min)",
+                                    c.Id, c.EndTime, DateTime.Now, delay.TotalSeconds, delay.TotalMinutes);
+                            }
+                        }
+
                         lastEnd = fresh.Max(c => c.EndTime);
 
-                        // слепок (чтобы подписчики не модифицировали наш список) + по возрастанию времени
                         var payload = fresh.OrderBy(c => c.EndTime)
                                            .ToList()
                                            .AsReadOnly();
 
-                        CardsCreated?.Invoke(payload); // событие с фонового потока
+                        CardsCreated?.Invoke(payload); 
                     }
                     catch (OperationCanceledException)
                     {
