@@ -219,18 +219,179 @@ namespace DesktopClient.Services
             await cmd.ExecuteNonQueryAsync(ct);
         }
 
+        /*  public async Task InsertNewCard(int lagSec, DateTime lastEndInterval, CancellationToken ct = default)
+          {
+              await using var conn = new MySqlConnection(_cs);
+              await conn.OpenAsync(ct);
+
+              const string sql = @"INSERT INTO cards
+      (TrendID, StartTs, EndTs, SourceSilo, Direction, TargetSilo, Weight1, Weight2)
+  WITH c AS (
+      SELECT
+          TrendID,
+          DateSet AS StartTs,
+          LEAD(DateSet) OVER (PARTITION BY TrendID ORDER BY DateSet) AS EndTs,
+          TagValue,
+          LEAD(TagValue) OVER (PARTITION BY TrendID ORDER BY DateSet) AS NextVal
+      FROM int_archive
+      WHERE DateSet >= @lastEndInterval - INTERVAL 1 DAY
+  ),
+  closed AS (
+      SELECT *
+      FROM c
+      WHERE TagValue = 1
+        AND NextVal  = 0
+        AND EndTs IS NOT NULL
+        AND EndTs > @lastEndInterval
+      ORDER BY EndTs ASC
+      LIMIT 1
+  )
+  SELECT
+      cl.TrendID,
+      cl.StartTs,
+      cl.EndTs,
+      t.Name      AS SourceSilo,
+      t.Direction AS Direction,
+      NULL        AS TargetSilo,
+
+      -- Weight1 (TrendID = 1)
+      GREATEST(
+          -- endCounter: последнее значение до/на EndTs + lagSec
+          IFNULL((
+              SELECT d.TagValue
+              FROM double_archive d
+              WHERE d.TrendID = 1
+                AND d.DateSet <= cl.EndTs + INTERVAL @lagSec SECOND
+              ORDER BY d.DateSet DESC
+              LIMIT 1
+          ), 0)
+          -
+          -- startCounter:
+          (
+              CASE
+                  -- 1) если есть значения слева (<= StartTs) → берём последнее слева
+                  WHEN EXISTS (
+                      SELECT 1
+                      FROM double_archive d
+                      WHERE d.TrendID = 1
+                        AND d.DateSet <= cl.StartTs
+                  ) THEN (
+                      SELECT d.TagValue
+                      FROM double_archive d
+                      WHERE d.TrendID = 1
+                        AND d.DateSet <= cl.StartTs
+                      ORDER BY d.DateSet DESC
+                      LIMIT 1
+                  )
+
+                  -- 2) иначе берём самое близкое справа:
+                  --    первое значение > StartTs (можно ограничить до EndTs+lag, чтобы не улетать далеко)
+                  WHEN EXISTS (
+                      SELECT 1
+                      FROM double_archive d
+                      WHERE d.TrendID = 1
+                        AND d.DateSet > cl.StartTs
+                        AND d.DateSet <= cl.EndTs + INTERVAL @lagSec SECOND
+                  ) THEN (
+                      SELECT d.TagValue
+                      FROM double_archive d
+                      WHERE d.TrendID = 1
+                        AND d.DateSet > cl.StartTs
+                        AND d.DateSet <= cl.EndTs + INTERVAL @lagSec SECOND
+                      ORDER BY d.DateSet ASC
+                      LIMIT 1
+                  )
+
+                  -- 3) вообще нет измерений → 0
+                  ELSE 0
+              END
+          ),
+          0
+      ) AS Weight1,
+
+      -- Weight2 (TrendID = 2) — аналогично
+      GREATEST(
+          IFNULL((
+              SELECT d.TagValue
+              FROM double_archive d
+              WHERE d.TrendID = 2
+                AND d.DateSet <= cl.EndTs + INTERVAL @lagSec SECOND
+              ORDER BY d.DateSet DESC
+              LIMIT 1
+          ), 0)
+          -
+          (
+              CASE
+                  WHEN EXISTS (
+                      SELECT 1
+                      FROM double_archive d
+                      WHERE d.TrendID = 2
+                        AND d.DateSet <= cl.StartTs
+                  ) THEN (
+                      SELECT d.TagValue
+                      FROM double_archive d
+                      WHERE d.TrendID = 2
+                        AND d.DateSet <= cl.StartTs
+                      ORDER BY d.DateSet DESC
+                      LIMIT 1
+                  )
+                  WHEN EXISTS (
+                      SELECT 1
+                      FROM double_archive d
+                      WHERE d.TrendID = 2
+                        AND d.DateSet > cl.StartTs
+                        AND d.DateSet <= cl.EndTs + INTERVAL @lagSec SECOND
+                  ) THEN (
+                      SELECT d.TagValue
+                      FROM double_archive d
+                      WHERE d.TrendID = 2
+                        AND d.DateSet > cl.StartTs
+                        AND d.DateSet <= cl.EndTs + INTERVAL @lagSec SECOND
+                      ORDER BY d.DateSet ASC
+                      LIMIT 1
+                  )
+                  ELSE 0
+              END
+          ),
+          0
+      ) AS Weight2
+
+  FROM closed cl
+  LEFT JOIN trends t ON t.TagID = cl.TrendID;
+  ";
+
+              await using var cmd = new MySqlCommand(sql, conn) { CommandTimeout = 5 };
+              cmd.Parameters.AddWithValue("@lastEndInterval", lastEndInterval);
+              cmd.Parameters.AddWithValue("@lagSec", lagSec);
+              try
+              {
+                  var affected = await cmd.ExecuteNonQueryAsync(ct);
+                  _logger.LogInformation(
+                      "InsertNewCard: inserted {Count} row(s) for lastEnd={LastEnd}, lagSec={LagSec}",
+                      affected, lastEndInterval, lagSec);
+              }
+              catch (MySqlException ex)
+              {
+                  _logger.LogError(ex,
+                      "InsertNewCard failed for lastEnd={LastEnd}, lagSec={LagSec}",
+                      lastEndInterval, lagSec);
+                  throw;
+              }
+          }*/
+
         public async Task InsertNewCard(int lagSec, DateTime lastEndInterval, CancellationToken ct = default)
         {
             await using var conn = new MySqlConnection(_cs);
             await conn.OpenAsync(ct);
 
-            const string sql = @"INSERT INTO cards
+            const string sql = @"
+INSERT INTO cards
     (TrendID, StartTs, EndTs, SourceSilo, Direction, TargetSilo, Weight1, Weight2)
 WITH c AS (
     SELECT
         TrendID,
         DateSet AS StartTs,
-        LEAD(DateSet) OVER (PARTITION BY TrendID ORDER BY DateSet) AS EndTs,
+        LEAD(DateSet)  OVER (PARTITION BY TrendID ORDER BY DateSet) AS EndTs,
         TagValue,
         LEAD(TagValue) OVER (PARTITION BY TrendID ORDER BY DateSet) AS NextVal
     FROM int_archive
@@ -243,8 +404,7 @@ closed AS (
       AND NextVal  = 0
       AND EndTs IS NOT NULL
       AND EndTs > @lastEndInterval
-    ORDER BY EndTs ASC
-    LIMIT 1
+      AND EndTs + INTERVAL @lagSec SECOND <= NOW()
 )
 SELECT
     cl.TrendID,
@@ -256,7 +416,7 @@ SELECT
 
     -- Weight1 (TrendID = 1)
     GREATEST(
-        -- endCounter: последнее значение до/на EndTs + lagSec
+        -- endCounter: ближайшее слева значение к EndTs + lagSec
         IFNULL((
             SELECT d.TagValue
             FROM double_archive d
@@ -266,10 +426,10 @@ SELECT
             LIMIT 1
         ), 0)
         -
-        -- startCounter:
+        -- startCounter: как и было у тебя
         (
             CASE
-                -- 1) если есть значения слева (<= StartTs) → берём последнее слева
+                -- 1) если есть значения слева от StartTs → берём последнее слева
                 WHEN EXISTS (
                     SELECT 1
                     FROM double_archive d
@@ -284,8 +444,7 @@ SELECT
                     LIMIT 1
                 )
 
-                -- 2) иначе берём самое близкое справа:
-                --    первое значение > StartTs (можно ограничить до EndTs+lag, чтобы не улетать далеко)
+                -- 2) иначе берём первое значение справа (но не дальше EndTs+lag)
                 WHEN EXISTS (
                     SELECT 1
                     FROM double_archive d
@@ -309,7 +468,7 @@ SELECT
         0
     ) AS Weight1,
 
-    -- Weight2 (TrendID = 2) — аналогично
+    -- Weight2 (TrendID = 2) — аналогично, только TrendID = 2
     GREATEST(
         IFNULL((
             SELECT d.TagValue
@@ -357,27 +516,16 @@ SELECT
     ) AS Weight2
 
 FROM closed cl
-LEFT JOIN trends t ON t.TagID = cl.TrendID;
-";
+LEFT JOIN trends t ON t.TagID = cl.TrendID
+ORDER BY cl.EndTs;";
 
             await using var cmd = new MySqlCommand(sql, conn) { CommandTimeout = 5 };
             cmd.Parameters.AddWithValue("@lastEndInterval", lastEndInterval);
             cmd.Parameters.AddWithValue("@lagSec", lagSec);
-            try
-            {
-                var affected = await cmd.ExecuteNonQueryAsync(ct);
-                _logger.LogInformation(
-                    "InsertNewCard: inserted {Count} row(s) for lastEnd={LastEnd}, lagSec={LagSec}",
-                    affected, lastEndInterval, lagSec);
-            }
-            catch (MySqlException ex)
-            {
-                _logger.LogError(ex,
-                    "InsertNewCard failed for lastEnd={LastEnd}, lagSec={LagSec}",
-                    lastEndInterval, lagSec);
-                throw;
-            }
+
+            await cmd.ExecuteNonQueryAsync(ct);
         }
+
 
         /// <summary>
         /// Метод обновляет целевой силос в карточке
@@ -438,38 +586,68 @@ LEFT JOIN trends t ON t.TagID = cl.TrendID;
         /// <param name="lagSec"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
+        /* public async Task<bool> CheckCompletedIntervalAsync(DateTime lastEndInterval, int lagSec, CancellationToken ct = default)
+         {
+             using var conn = new MySqlConnection(_cs);
+             await conn.OpenAsync(ct);
+
+             var sql = @" WITH e AS (
+                             SELECT TrendID,
+                             DateSet AS StartTs,
+                             LEAD(DateSet)  OVER (PARTITION BY TrendID ORDER BY DateSet) AS EndTs,
+                             TagValue,
+                             LEAD(TagValue) OVER (PARTITION BY TrendID ORDER BY DateSet) AS NextVal
+                             FROM int_archive)
+                             SELECT EXISTS (
+                             SELECT 1
+                             FROM e
+                             WHERE TagValue = 1    
+                             AND NextVal  = 0       
+                             AND EndTs IS NOT NULL    
+                             AND EndTs > @lastEndInterval  
+                             AND EndTs + INTERVAL @lagSec SECOND <= (SELECT MAX(DateSet) FROM double_archive)
+                             ) AS HasClosed;";
+
+             using var cmd = new MySqlCommand(sql, conn) { CommandTimeout = 5 };
+             cmd.Parameters.AddWithValue("@lastEndInterval", lastEndInterval);
+             cmd.Parameters.AddWithValue("@lagSec", lagSec);
+
+             using var r = await cmd.ExecuteReaderAsync(ct);
+
+             await r.ReadAsync(ct);
+
+             return r.GetBoolean("HasClosed");
+         }*/
         public async Task<bool> CheckCompletedIntervalAsync(DateTime lastEndInterval, int lagSec, CancellationToken ct = default)
         {
-            using var conn = new MySqlConnection(_cs);
+            await using var conn = new MySqlConnection(_cs);
             await conn.OpenAsync(ct);
 
             var sql = @" WITH e AS (
-                            SELECT TrendID,
-                            DateSet AS StartTs,
-                            LEAD(DateSet)  OVER (PARTITION BY TrendID ORDER BY DateSet) AS EndTs,
-                            TagValue,
-                            LEAD(TagValue) OVER (PARTITION BY TrendID ORDER BY DateSet) AS NextVal
-                            FROM int_archive)
-                            SELECT EXISTS (
-                            SELECT 1
-                            FROM e
-                            WHERE TagValue = 1    
-                            AND NextVal  = 0       
-                            AND EndTs IS NOT NULL    
-                            AND EndTs > @lastEndInterval  
-                            AND EndTs + INTERVAL @lagSec SECOND <= (SELECT MAX(DateSet) FROM double_archive)
-                            ) AS HasClosed;";
+                         SELECT TrendID,
+                         DateSet AS StartTs,
+                         LEAD(DateSet)  OVER (PARTITION BY TrendID ORDER BY DateSet) AS EndTs,
+                         TagValue,
+                         LEAD(TagValue) OVER (PARTITION BY TrendID ORDER BY DateSet) AS NextVal
+                         FROM int_archive
+                         WHERE DateSet >= @lastEndInterval - INTERVAL 1 DAY)
+                         SELECT EXISTS (
+                         SELECT 1
+                         FROM e
+                         WHERE TagValue = 1 AND NextVal  = 0 AND EndTs IS NOT NULL
+                         AND EndTs > @lastEndInterval AND EndTs + INTERVAL @lagSec SECOND <= NOW()
+                         ) AS HasClosed;";
 
-            using var cmd = new MySqlCommand(sql, conn) { CommandTimeout = 5 };
+            await using var cmd = new MySqlCommand(sql, conn) { CommandTimeout = 5 };
             cmd.Parameters.AddWithValue("@lastEndInterval", lastEndInterval);
             cmd.Parameters.AddWithValue("@lagSec", lagSec);
 
-            using var r = await cmd.ExecuteReaderAsync(ct);
-
+            await using var r = await cmd.ExecuteReaderAsync(ct);
             await r.ReadAsync(ct);
 
             return r.GetBoolean("HasClosed");
         }
+
 
         public async Task<DateTime> GetMaxCardEndAsync(CancellationToken ct = default)
         {
