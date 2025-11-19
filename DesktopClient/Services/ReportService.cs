@@ -257,9 +257,9 @@ namespace DesktopClient.Services
             ws.Column("E").Style.DateFormat.Format = "dd.MM.yyyy HH:mm";
             ws.Column("F").Style.DateFormat.Format = "dd.MM.yyyy HH:mm";
 
-            ws.Column("G").Style.NumberFormat.Format = "0";
-            ws.Column("H").Style.NumberFormat.Format = "0";
-            ws.Column("I").Style.NumberFormat.Format = "0";
+            ws.Column("G").Style.NumberFormat.Format = "#,##0";
+            ws.Column("H").Style.NumberFormat.Format = "#,##0";
+            ws.Column("I").Style.NumberFormat.Format = "#,##0";
 
             // Границы таблицы (только сама таблица: с заголовка до последней строки с данными)
             var tableRange = ws.Range(8, 1, lastDataRow, 9);
