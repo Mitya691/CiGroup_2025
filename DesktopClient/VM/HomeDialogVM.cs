@@ -3,6 +3,7 @@ using DesktopClient.Helpers;
 using DesktopClient.Model;
 using DesktopClient.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -20,6 +21,7 @@ namespace DesktopClient.VM
         private readonly ISQLRepository _repository;
         private IPollingService _polling;
         private ISettingsStore _settings;
+        private ILogger<HomeDialogVM> _logger;
 
         private DateTime? _filterStart;
         public DateTime? FilterStart
@@ -73,13 +75,15 @@ namespace DesktopClient.VM
 
         public ObservableCollection<HomeCardVM> Cards { get; } = new();
 
-        public HomeDialogVM(MainWindowVM shell, ISQLRepository repository, IPollingService polling, ISettingsStore settings)
+        public HomeDialogVM(MainWindowVM shell, ISQLRepository repository, IPollingService polling, ISettingsStore settings, ILogger<HomeDialogVM> logger)
         {
             _shell = shell;
             _repository = repository;
             _polling = polling;
             _settings = settings;
+            _logger = logger;
             _polling.CardsCreated += OnCardsCreated;
+            _logger.LogInformation("Подписка на сервис поллинга");
 
             ApplyFilterCommand = new AsyncRelayCommand(GetCardsForFilter, CanGetCardsForFilter);
             ResetFilterCommand = new AsyncRelayCommand(ResetFilter);
@@ -92,6 +96,7 @@ namespace DesktopClient.VM
         public async ValueTask DisposeAsync()
         {
             _polling.CardsCreated -= OnCardsCreated;
+            _logger.LogInformation("Отписка от сервис поллинга");
             await ValueTask.CompletedTask;
         }
 
