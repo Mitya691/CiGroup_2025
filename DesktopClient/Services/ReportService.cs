@@ -120,8 +120,8 @@ namespace DesktopClient.Services
 
             shiftStartCell.Value = Start;
             shiftEndCell.Value = Stop;
-            shiftStartCell.Style.DateFormat.Format = "dd.MM.yyyy HH:mm";
-            shiftEndCell.Style.DateFormat.Format = "dd.MM.yyyy HH:mm";
+            shiftStartCell.Style.DateFormat.Format = "dd.MM.yyyy H:mm";
+            shiftEndCell.Style.DateFormat.Format = "dd.MM.yyyy H:mm";
 
             operatorCell.Value = shiftOperator;
 
@@ -254,8 +254,8 @@ namespace DesktopClient.Services
             // ------------------ ОБЩЕЕ ФОРМАТИРОВАНИЕ ТАБЛИЦЫ ------------------
 
             // Форматы дат/времени и чисел
-            ws.Column("E").Style.DateFormat.Format = "dd.MM.yyyy HH:mm";
-            ws.Column("F").Style.DateFormat.Format = "dd.MM.yyyy HH:mm";
+            ws.Column("E").Style.DateFormat.Format = "dd.MM.yyyy H:mm";
+            ws.Column("F").Style.DateFormat.Format = "dd.MM.yyyy H:mm";
 
             ws.Column("G").Style.NumberFormat.Format = "#,##0";
             ws.Column("H").Style.NumberFormat.Format = "#,##0";
