@@ -27,7 +27,7 @@ namespace DesktopClient.Config
 
         [XmlArray("Recipients", Order = 6)]
         [XmlArrayItem("MailAddress")]
-        public List<Person> Recipients { get; set; } = new() { new Person { Name = "Алексей Оводков", Email = "mop3e@mail.ru" } };
+        public List<Person> Recipients { get; set; } = new();
     }
 
     public class Person

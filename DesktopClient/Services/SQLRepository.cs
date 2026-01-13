@@ -426,7 +426,6 @@ SELECT
             LIMIT 1
         ), 0)
         -
-        -- startCounter: как и было у тебя
         (
             CASE
                 -- 1) если есть значения слева от StartTs → берём последнее слева
@@ -443,7 +442,6 @@ SELECT
                     ORDER BY d.DateSet DESC
                     LIMIT 1
                 )
-
                 -- 2) иначе берём первое значение справа (но не дальше EndTs+lag)
                 WHEN EXISTS (
                     SELECT 1
@@ -460,7 +458,6 @@ SELECT
                     ORDER BY d.DateSet ASC
                     LIMIT 1
                 )
-
                 -- 3) вообще нет измерений → 0
                 ELSE 0
             END

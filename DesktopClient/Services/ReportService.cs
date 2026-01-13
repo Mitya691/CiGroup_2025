@@ -11,6 +11,8 @@ using DesktopClient.Config;
 using Microsoft.Extensions.Logging;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using System.Security.AccessControl;
+using System.Globalization;
+
 
 namespace DesktopClient.Services
 {
@@ -42,6 +44,8 @@ namespace DesktopClient.Services
 
         public async Task<string> NewReport(DateTime? Start, DateTime? Stop, string shiftOperator)
         {
+            var ru = new CultureInfo("ru-RU");
+
             List<Card> rawData = await _repository.GetCardsForInterval(Start, Stop);
 
             if (rawData.Count == 0)
@@ -116,12 +120,9 @@ namespace DesktopClient.Services
 
             // Значения шапки
             dateCell.Value = DateTime.Now.Date;
-            dateCell.Style.DateFormat.Format = "dd.MM.yyyy";
 
             shiftStartCell.Value = Start;
             shiftEndCell.Value = Stop;
-            shiftStartCell.Style.DateFormat.Format = "dd.MM.yyyy H:mm";
-            shiftEndCell.Style.DateFormat.Format = "dd.MM.yyyy H:mm";
 
             operatorCell.Value = shiftOperator;
 
@@ -252,11 +253,6 @@ namespace DesktopClient.Services
             int lastUsedRow = totalRow;
 
             // ------------------ ОБЩЕЕ ФОРМАТИРОВАНИЕ ТАБЛИЦЫ ------------------
-
-            // Форматы дат/времени и чисел
-            ws.Column("E").Style.DateFormat.Format = "dd.MM.yyyy H:mm";
-            ws.Column("F").Style.DateFormat.Format = "dd.MM.yyyy H:mm";
-
             ws.Column("G").Style.NumberFormat.Format = "#,##0";
             ws.Column("H").Style.NumberFormat.Format = "#,##0";
             ws.Column("I").Style.NumberFormat.Format = "#,##0";
@@ -476,6 +472,12 @@ namespace DesktopClient.Services
             var generationDate = $"Дата создания отчета: {DateTime.Now}";
             var subject = $"Отчёт за {date:dd.MM.yyyy HH:mm} - {date1:dd.MM.yyyy HH:mm}";
             var msg = new MimeMessage();
+
+            if (s.Recipients.Count <= 0)
+            {
+                _logger.LogWarning("У письма нет получателей. Ошибка отправки письма");
+                return;
+            }
 
             msg.From.Add(new MailboxAddress(s.Sender?.Name ?? "", s.Sender?.Email ?? ""));
             // чтобы не раскрывать список — лучше Bcc:
